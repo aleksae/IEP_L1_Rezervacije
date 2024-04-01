@@ -91,9 +91,24 @@ def z3():
 
 @app.route('/hotel/pregled', methods=['GET'])
 def z4():
-    upit = db.session.query(Hotel.IdHot, Hotel.Naziv, Soba.Tip, db.func.count('tip'=='S').label("st"), db.func.count('tip'=='L').label("lu"), db.func.count('tip'=='E').label("ek")).join(Soba).group_by(Hotel.IdHot).all()
-    res = [{"IdKup": hotel.IdHot, "Naziv":hotel.Naziv, "BrE":hotel.ek, "BrS":hotel.st, "BrL":hotel.lu} for hotel in upit]
-    return jsonify(res)
+    upit = db.session.query(Hotel.IdHot, Hotel.Naziv, Soba.Tip, db.func.count(Soba.Tip).label("br")).join(Soba).group_by(Hotel.IdHot, Soba.Tip).all()
+    hotel = []
+    for hotel_id, naziv, tip, br in upit:
+        found = False
+        for h in hotel:
+            if h['IdHot'] == hotel_id:
+                found = True
+                h[tip] = br
+                break
+        if not found:
+            hotel.append({"IdHot": hotel_id, "Naziv":naziv, tip: br})
+
+    for h in hotel:
+        h["E"] = h.get("E", 0)
+        h["S"] = h.get("S", 0)
+        h["L"] = h.get("L", 0)
+
+    return jsonify(hotel)
 
 @app.route('/korisnik/rezervisi', methods=['POST'])
 def z5():
